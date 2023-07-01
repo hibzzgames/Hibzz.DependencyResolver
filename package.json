@@ -10,5 +10,8 @@
   },
   "documentationUrl": "https://github.com/hibzzgames/Hibzz.DependencyResolver/blob/main/README.md",
   "changelogUrl": "https://github.com/hibzzgames/Hibzz.DependencyResolver/commits/",
-  "licensesUrl": "https://github.com/hibzzgames/Hibzz.DependencyResolver/blob/main/LICENSE.md"
+  "licensesUrl": "https://github.com/hibzzgames/Hibzz.DependencyResolver/blob/main/LICENSE.md",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.0"
+  }
 }

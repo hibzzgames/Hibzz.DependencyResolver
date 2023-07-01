@@ -3,6 +3,7 @@
     "rootNamespace": "Hibzz.DependencyResolver",
     "references": [],
     "includePlatforms": [
+        "Editor"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
