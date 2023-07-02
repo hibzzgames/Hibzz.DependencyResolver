@@ -1,6 +1,6 @@
 {
   "name": "com.hibzz.dependencyresolver",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "displayName": "hibzz.dependencyresolver",
   "description": "A tool used to resolve git dependencies in packages installed with Unity's Package Manager",
   "author": {
