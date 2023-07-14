@@ -56,16 +56,16 @@ namespace Hibzz.DependencyResolver
         /// <returns>Was the request successful?</returns>
         static bool GetDependencies(PackageInfo packageInfo, out List<string> dependencies)
         {
-			// Read the contents of the package.json file
-			string package_json_path = $"{packageInfo.resolvedPath}/package.json";
-			string package_json_content = File.ReadAllText(package_json_path);
+            // Read the contents of the package.json file
+            string package_json_path = $"{packageInfo.resolvedPath}/package.json";
+            string package_json_content = File.ReadAllText(package_json_path);
 
-			// parse the json and read any list of git-dependencies
-			var package_content = JObject.Parse(package_json_content);
-			var git_dependencies_token = package_content["git-dependencies"];
+            // parse the json and read any list of git-dependencies
+            var package_content = JObject.Parse(package_json_content);
+            var git_dependencies_token = package_content["git-dependencies"];
 
-			// if no token with the key git-dependecies is found, failed to get git dependencies
-			if (git_dependencies_token is null) 
+            // if no token with the key git-dependecies is found, failed to get git dependencies
+            if (git_dependencies_token is null) 
             {
                 dependencies = null;
                 return false; 
@@ -75,7 +75,7 @@ namespace Hibzz.DependencyResolver
             // maybe we should check for errors in this process? what if git-dependency isn't array of string?
             dependencies = Array.ConvertAll(git_dependencies_token.ToArray(), item => item.ToString()).ToList();
             return true;
-		}
+        }
 
         /// <summary>
         /// Is the given dependency url found in the given collection
@@ -91,12 +91,12 @@ namespace Hibzz.DependencyResolver
             // check if any of the installed package has the dependency
             foreach(var package in collection)
             {
-				// the package id for a package installed with git is `package_name@package_giturl`
-				// get the repo url by performing some string manipulation on the package id
-				string repourl = package.packageId.Substring(package.packageId.IndexOf('@') + 1);
+                // the package id for a package installed with git is `package_name@package_giturl`
+                // get the repo url by performing some string manipulation on the package id
+                string repourl = package.packageId.Substring(package.packageId.IndexOf('@') + 1);
 
-				// Found!
-				if (repourl == dependency) { return true; }
+                // Found!
+                if (repourl == dependency) { return true; }
             }
 
             // the dependency wasn't found in the package collection
@@ -109,21 +109,21 @@ namespace Hibzz.DependencyResolver
         /// <param name="dependencies">A list of dependencies to install</param>
         static void InstallDependencies(List<string> dependencies)
         {
-			// there are no dependencies to install, skip
-			if (dependencies == null || dependencies.Count <= 0) { return; }
+            // there are no dependencies to install, skip
+            if (dependencies == null || dependencies.Count <= 0) { return; }
 
-			// before installing the packages, make sure that user knows what the dependencies to install are
-			if (!EditorUtility.DisplayDialog($"Dependency Resolver",
-				$"The following dependencies are required: \n\n{GetPrintFriendlyName(dependencies)}",
-				"Install Dependencies", "Cancel"))
-			{
-				// user decided to cancel the installation of the dependencies...
-				return;
-			}
+            // before installing the packages, make sure that user knows what the dependencies to install are
+            if (!EditorUtility.DisplayDialog($"Dependency Resolver",
+                $"The following dependencies are required: \n\n{GetPrintFriendlyName(dependencies)}",
+                "Install Dependencies", "Cancel"))
+            {
+                // user decided to cancel the installation of the dependencies...
+                return;
+            }
 
             // the user pressed install, perform the actual installation
             Client.AddAndRemove(dependencies.ToArray(), null);
-		}
+        }
 
         /// <summary>
         /// Get a print friendly name of all dependencies to show in the dialog box
@@ -141,6 +141,6 @@ namespace Hibzz.DependencyResolver
             result = result.Replace("https://github.com/", ""); // remove github link such that we only show "username/repo"
 
             return result;
-		}
+        }
     }
 }
