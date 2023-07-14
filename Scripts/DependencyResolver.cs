@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.PackageManager;
-using UnityEditor.PackageManager.UI;
-using UnityEngine.UIElements;
 using Newtonsoft.Json.Linq;
 
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
@@ -13,29 +11,42 @@ using PackageInfo = UnityEditor.PackageManager.PackageInfo;
 namespace Hibzz.DependencyResolver
 {
     [InitializeOnLoad]
-    public class DependencyResolver : IPackageManagerExtension
+    public class DependencyResolver
     {
+        // called by the attribute [InitializeOnLoad]
         static DependencyResolver()
         {
-            PackageManagerExtensions.RegisterExtension(new DependencyResolver());
+            Events.registeredPackages += OnPackagesRegistered;
         }
 
-        public VisualElement CreateExtensionUI() { return null; }
-
-        public void OnPackageAddedOrUpdated(PackageInfo packageInfo)
+        // Invoked when the package manager completes registering new packages
+        static void OnPackagesRegistered(PackageRegistrationEventArgs packageRegistrationInfo)
         {
-            // get a list of git dependencies (as configured by the package developer)
-            if(!RequestGitDependencies(packageInfo, out var dependencies)) { return; }
+            // stores all the dependencies that needs to be installed in this step
+            List<string> dependencies = new List<string>();
 
-			// get a list of installed packages
-			var installed_packages = PackageInfo.GetAllRegisteredPackages().ToList();
-            
-            // remove all dependencies from the list that has already been installed
-			dependencies.RemoveAll((dependency) => IsInCollection(dependency, installed_packages));
+            // loop through all of the added packages and get their git
+            // dependencies and add it to the list that contains all the
+            // dependencies that need to be installed
+            foreach(var package in packageRegistrationInfo.added)
+            {
+                // get the dependencies of the added package
+                if(!GetDependencies(package, out var package_dependencies)) { continue; }
 
-            // install the dependencies
-            InstallDependencies(dependencies, mainPackageName: packageInfo.name);
-		}
+                // add it to the total list of dependencies
+                dependencies.AddRange(package_dependencies);
+            }
+
+            // remove any duplicates
+            dependencies = dependencies.Distinct().ToList();
+
+            // remove any dependencies that's already installed
+            var installed_packages = PackageInfo.GetAllRegisteredPackages().ToList();
+            dependencies.RemoveAll((dependency) => IsInCollection(dependency, installed_packages));
+
+            // Install the dependencies
+            InstallDependencies(dependencies);
+        }
 
         /// <summary>
         /// Request a list of git dependencies in the package
@@ -43,7 +54,7 @@ namespace Hibzz.DependencyResolver
         /// <param name="packageInfo">The package to get the git dependencies from</param>
         /// <param name="dependencies">The retrieved list of git dependencies </param>
         /// <returns>Was the request successful?</returns>
-        bool RequestGitDependencies(PackageInfo packageInfo, out List<string> dependencies)
+        static bool GetDependencies(PackageInfo packageInfo, out List<string> dependencies)
         {
 			// Read the contents of the package.json file
 			string package_json_path = $"{packageInfo.resolvedPath}/package.json";
@@ -72,7 +83,7 @@ namespace Hibzz.DependencyResolver
         /// <param name="dependency">The url the dependency to check for</param>
         /// <param name="collection">The collection to look through</param>
         /// <returns></returns>
-        bool IsInCollection(string dependency, List<PackageInfo> collection)
+        static bool IsInCollection(string dependency, List<PackageInfo> collection)
         {
             // when package collection given is null, it's inferred that the dependency is not in the collection
             if(collection == null) { return false; }
@@ -96,13 +107,13 @@ namespace Hibzz.DependencyResolver
         /// Install all the given dependencies
         /// </summary>
         /// <param name="dependencies">A list of dependencies to install</param>
-        void InstallDependencies(List<string> dependencies, string mainPackageName)
+        static void InstallDependencies(List<string> dependencies)
         {
 			// there are no dependencies to install, skip
-			if (dependencies.Count <= 0) { return; }
+			if (dependencies == null || dependencies.Count <= 0) { return; }
 
 			// before installing the packages, make sure that user knows what the dependencies to install are
-			if (!EditorUtility.DisplayDialog($"{mainPackageName} requires additional dependencies",
+			if (!EditorUtility.DisplayDialog($"Dependency Resolver",
 				$"The following dependencies are required: \n\n{GetPrintFriendlyName(dependencies)}",
 				"Install Dependencies", "Cancel"))
 			{
@@ -119,7 +130,7 @@ namespace Hibzz.DependencyResolver
         /// </summary>
         /// <param name="dependencies">The list of dependencies to parse through</param>
         /// <returns>A print friendly string representing all the dependencies</returns>
-        string GetPrintFriendlyName(List<string> dependencies) 
+        static string GetPrintFriendlyName(List<string> dependencies) 
         {
             // ideally, we want the package name, but that requires downloading the package.json and parsing through
             // it, which is kinda too much... i could ask for the users to give a package name along with the url in
@@ -131,9 +142,5 @@ namespace Hibzz.DependencyResolver
 
             return result;
 		}
-
-        public void OnPackageRemoved(PackageInfo packageInfo) { }
-
-        public void OnPackageSelectionChange(PackageInfo packageInfo) { }
     }
 }
