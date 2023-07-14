@@ -8,12 +8,15 @@ using UnityEngine;
 using Newtonsoft.Json.Linq;
 
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
+using UnityEditor.PackageManager.Requests;
 
 namespace Hibzz.DependencyResolver
 {
     [InitializeOnLoad]
     public class DependencyResolver
     {
+        static AddAndRemoveRequest packageInstallationRequest;
+
         // called by the attribute [InitializeOnLoad]
         static DependencyResolver()
         {
@@ -130,7 +133,11 @@ namespace Hibzz.DependencyResolver
 
             // the user pressed install, perform the actual installation
             // (or the application was in batch mode)
-            Client.AddAndRemove(dependencies.ToArray(), null);
+            packageInstallationRequest = Client.AddAndRemove(dependencies.ToArray(), null);
+
+            // show the progress bar till the installation is complete
+            EditorUtility.DisplayProgressBar("Dependency Resolver", "Preparing installation of dependencies...", 0);
+            EditorApplication.update += DisplayProgress;
         }
 
         /// <summary>
@@ -149,6 +156,18 @@ namespace Hibzz.DependencyResolver
             result = result.Replace("https://github.com/", ""); // remove github link such that we only show "username/repo"
 
             return result;
+        }
+
+        /// <summary>
+        /// Shows a progress bar till the AddAndRemoveRequest is completed
+        /// </summary>
+        static void DisplayProgress()
+        {
+            if(packageInstallationRequest.IsCompleted)
+            {
+                EditorUtility.ClearProgressBar();
+                EditorApplication.update -= DisplayProgress;
+            }
         }
     }
 }
