@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.PackageManager;
+using UnityEngine;
 using Newtonsoft.Json.Linq;
 
 using PackageInfo = UnityEditor.PackageManager.PackageInfo;
@@ -28,10 +29,10 @@ namespace Hibzz.DependencyResolver
             // loop through all of the added packages and get their git
             // dependencies and add it to the list that contains all the
             // dependencies that need to be installed
-            foreach(var package in packageRegistrationInfo.added)
+            foreach (var package in packageRegistrationInfo.added)
             {
                 // get the dependencies of the added package
-                if(!GetDependencies(package, out var package_dependencies)) { continue; }
+                if (!GetDependencies(package, out var package_dependencies)) { continue; }
 
                 // add it to the total list of dependencies
                 dependencies.AddRange(package_dependencies);
@@ -65,10 +66,10 @@ namespace Hibzz.DependencyResolver
             var git_dependencies_token = package_content["git-dependencies"];
 
             // if no token with the key git-dependecies is found, failed to get git dependencies
-            if (git_dependencies_token is null) 
+            if (git_dependencies_token is null)
             {
                 dependencies = null;
-                return false; 
+                return false;
             }
 
             // convert the git dependency token to a list of strings...
@@ -86,10 +87,10 @@ namespace Hibzz.DependencyResolver
         static bool IsInCollection(string dependency, List<PackageInfo> collection)
         {
             // when package collection given is null, it's inferred that the dependency is not in the collection
-            if(collection == null) { return false; }
+            if (collection == null) { return false; }
 
             // check if any of the installed package has the dependency
-            foreach(var package in collection)
+            foreach (var package in collection)
             {
                 // the package id for a package installed with git is `package_name@package_giturl`
                 // get the repo url by performing some string manipulation on the package id
@@ -100,7 +101,7 @@ namespace Hibzz.DependencyResolver
             }
 
             // the dependency wasn't found in the package collection
-            return false; 
+            return false;
         }
 
         /// <summary>
@@ -112,16 +113,23 @@ namespace Hibzz.DependencyResolver
             // there are no dependencies to install, skip
             if (dependencies == null || dependencies.Count <= 0) { return; }
 
-            // before installing the packages, make sure that user knows what the dependencies to install are
-            if (!EditorUtility.DisplayDialog($"Dependency Resolver",
-                $"The following dependencies are required: \n\n{GetPrintFriendlyName(dependencies)}",
-                "Install Dependencies", "Cancel"))
+            // before installing the packages, make sure that user knows what
+            // the dependencies to install are... additionally, check if the
+            // application is being run on batch mode so that we can skip the
+            // installation dialog
+            if (!Application.isBatchMode &&
+                !EditorUtility.DisplayDialog(
+                    $"Dependency Resolver",
+                    $"The following dependencies are required: \n\n{GetPrintFriendlyName(dependencies)}",
+                    "Install Dependencies",
+                    "Cancel"))
             {
                 // user decided to cancel the installation of the dependencies...
                 return;
             }
 
             // the user pressed install, perform the actual installation
+            // (or the application was in batch mode)
             Client.AddAndRemove(dependencies.ToArray(), null);
         }
 
@@ -130,7 +138,7 @@ namespace Hibzz.DependencyResolver
         /// </summary>
         /// <param name="dependencies">The list of dependencies to parse through</param>
         /// <returns>A print friendly string representing all the dependencies</returns>
-        static string GetPrintFriendlyName(List<string> dependencies) 
+        static string GetPrintFriendlyName(List<string> dependencies)
         {
             // ideally, we want the package name, but that requires downloading the package.json and parsing through
             // it, which is kinda too much... i could ask for the users to give a package name along with the url in
